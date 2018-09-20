@@ -16,12 +16,13 @@ class MyBoard(QWidget):
         super().__init__()
         self.shape = Shape()
         self.current_line = Line()
+        self.label = QLabel(self)
         self.init_ui()
 
     def init_ui(self):
-        self.shape.addLine(self.current_line)
-
         grid = QGridLayout()
+        grid.addWidget(self.label, 0, 0, Qt.AlignTop)
+
         self.setLayout(grid)
         self.setGeometry(300, 300, 350, 200)
         self.setWindowTitle('Event Object')
@@ -33,13 +34,34 @@ class MyBoard(QWidget):
         pen = QPen(Qt.black, 1, Qt.SolidLine)
         painter.setPen(pen)
 
-        # draw points and lines
+        # draw previous points and lines
         for line in self.shape.lines:
             self.__drawPoints(line, painter)
             # draw line to make it look more good
             self.__drawLineBetweenPoints(line, painter)
 
+        # draw current line
+        self.__drawPoints(self.current_line, painter)
+        self.__drawLineBetweenPoints(self.current_line, painter)
+
         painter.end()
+
+    def mouseMoveEvent(self, e):
+        self.current_line.addPoint(e.x(), e.y())
+
+        self.update()
+
+    def mouseReleaseEvent(self, e):
+        # create new line and add it to the shape
+        self.shape.addLine(self.current_line)
+        self.current_line = Line()
+        # show tag of current shape
+        self.__show_shape_tag()
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.RightButton:
+            self.points.clear()
+            self.update()
 
     @staticmethod
     def __drawLineBetweenPoints(line, painter):
@@ -51,19 +73,8 @@ class MyBoard(QWidget):
         for point in line.points:
             painter.drawPoint(point)
 
-    def mouseMoveEvent(self, e):
-        self.current_line.addPoint(e.x(), e.y())
-
-        self.update()
-
-    def mouseReleaseEvent(self, e):
-        self.current_line = Line()
-        self.shape.addLine(self.current_line)
-
-    def mousePressEvent(self, e):
-        if e.button() == Qt.RightButton:
-            self.points.clear()
-            self.update()
+    def __show_shape_tag(self):
+        self.label.setText(self.shape.tag)
 
     def __saveShape(self):
         pass
@@ -85,13 +96,14 @@ class Shape:
 
     @property
     def tag(self):
+        self.update_shape_type()
         return self.__tag
 
     def addLine(self, line):
         assert isinstance(line, Line)
         self.lines.append(line)
 
-    def tellShapeType(self):
+    def update_shape_type(self):
         lines_number = len(self.lines)
         # set tag according to the number of the lines
         self.__tag = {
@@ -99,7 +111,7 @@ class Shape:
             2: TRIANGLE,
             3: SQUARE,
             4: RECTANGLE
-        }[lines_number]
+        }.get(lines_number, 'No tags to show')
 
     def showLinesOnBoard(self, board):
         pass
