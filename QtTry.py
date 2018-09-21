@@ -1,7 +1,8 @@
 import sys
+import pickle
 
 from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtWidgets import QWidget, QApplication, QGridLayout, QLabel, QMainWindow
+from PyQt5.QtWidgets import QWidget, QApplication, QGridLayout, QLabel, QMainWindow, QFileDialog, QAction
 from PyQt5.QtGui import QPainter, QPen, QPainterPath
 
 CIRCLE = 'circle'
@@ -10,20 +11,32 @@ SQUARE = 'square'
 RECTANGLE = 'rectangle'
 
 
-class MyBoard(QWidget):
+class MyBoard(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
         self.shape = Shape()
         self.current_line = Line()
+
         self.label = QLabel(self)
         self.init_ui()
 
     def init_ui(self):
-        grid = QGridLayout()
-        grid.addWidget(self.label, 0, 0, Qt.AlignTop)
+        self.label.setAlignment(Qt.AlignTop)
 
-        self.setLayout(grid)
+        # init actions
+        save_action = QAction('save', self)
+        load_action = QAction('load', self)
+        save_action.triggered.connect(self.__saveShape)
+        load_action.triggered.connect(self.__loadShape)
+
+        # set menu bar
+        menu_bar = self.menuBar()
+        save = menu_bar.addMenu('save')
+        save.addAction(save_action)
+        read = menu_bar.addMenu('read')
+        read.addAction(load_action)
+
         self.setGeometry(300, 300, 350, 200)
         self.setWindowTitle('Event Object')
         self.show()
@@ -52,15 +65,16 @@ class MyBoard(QWidget):
         self.update()
 
     def mouseReleaseEvent(self, e):
-        # create new line and add it to the shape
-        self.shape.addLine(self.current_line)
-        self.current_line = Line()
-        # show tag of current shape
-        self.__show_shape_tag()
+        if e.button() == Qt.LeftButton:
+            # create new line and add it to the shape
+            self.shape.addLine(self.current_line)
+            self.current_line = Line()
+            # show tag of current shape
+            self.__show_shape_tag()
 
     def mousePressEvent(self, e):
         if e.button() == Qt.RightButton:
-            self.points.clear()
+            self.__clear_board()
             self.update()
 
     @staticmethod
@@ -77,10 +91,22 @@ class MyBoard(QWidget):
         self.label.setText(self.shape.tag)
 
     def __saveShape(self):
-        pass
+        target = QFileDialog.getSaveFileName(self, 'Save Shape', 'shape')
+        if target[0]:
+            saveShapeTo(target[0], self.shape)
 
     def __loadShape(self):
-        pass
+        source = QFileDialog.getOpenFileName(self, 'Load Shape', 'shape')
+        if source[0]:
+            self.shape = loadShape(source[0])
+            self.current_line.clear()
+            self.__show_shape_tag()
+            self.update()
+
+    def __clear_board(self):
+        self.shape.clear_lines()
+        self.current_line.clear()
+        self.label.setText('')
 
 
 class Shape:
@@ -101,10 +127,13 @@ class Shape:
 
     def addLine(self, line):
         assert isinstance(line, Line)
-        self.lines.append(line)
+        self.__lines.append(line)
+
+    def clear_lines(self):
+        self.__lines.clear()
 
     def update_shape_type(self):
-        lines_number = len(self.lines)
+        lines_number = len(self.__lines)
         # set tag according to the number of the lines
         self.__tag = {
             1: CIRCLE,
@@ -140,13 +169,18 @@ class Line:
     def points_number(self):
         return len(self.__points)
 
+    def clear(self):
+        self.__points.clear()
+
 
 def saveShapeTo(path, shape):
-    pass
+    target = open(path, 'wb')
+    pickle.dump(shape, target)
 
 
 def loadShape(path):
-    pass
+    source = open(path, 'rb')
+    return pickle.load(source)
 
 
 def recognizeShape(shape):
