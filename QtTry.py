@@ -1,9 +1,10 @@
-import sys
 import pickle
+import sys
+import math
 
 from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtWidgets import QWidget, QApplication, QGridLayout, QLabel, QMainWindow, QFileDialog, QAction
-from PyQt5.QtGui import QPainter, QPen, QPainterPath
+from PyQt5.QtGui import QPainter, QPen
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QFileDialog, QAction
 
 CIRCLE = 'circle'
 TRIANGLE = 'triangle'
@@ -80,11 +81,11 @@ class MyBoard(QMainWindow):
     @staticmethod
     def __drawLineBetweenPoints(line, painter):
         for i in range(1, line.points_number()):
-            painter.drawLine(line[i], line[i - 1])
+            painter.drawLine(line.get_q_point(i), line.get_q_point(i - 1))
 
     @staticmethod
     def __drawPoints(line, painter):
-        for point in line.points:
+        for point in line.q_points:
             painter.drawPoint(point)
 
     def __show_shape_tag(self):
@@ -156,21 +157,35 @@ class Line:
         self.__points = []
 
     def __getitem__(self, item):
-        point = self.__points[item]
-        return QPoint(point[0], point[1])
+        return self.__points[item]
 
     def addPoint(self, x, y):
-        self.__points.append((x, y))
+        self.__points.append(Point(x, y))
+
+    def get_q_point(self, position):
+        point = self.__points[position]
+        return QPoint(point.x, point.y)
 
     @property
-    def points(self):
-        return [QPoint(a[0], a[1]) for a in self.__points]
+    def q_points(self):
+        return [QPoint(a.x, a.y) for a in self.__points]
 
     def points_number(self):
         return len(self.__points)
 
     def clear(self):
         self.__points.clear()
+
+
+class Point:
+
+    def __init__(self, x, y):
+        super().__init__()
+        self.x = x
+        self.y = y
+
+    def distTo(self, point):
+        return math.sqrt(pow(self.x - point.x, 2) + pow(self.y - point.y, 2))
 
 
 def saveShapeTo(path, shape):
@@ -184,7 +199,20 @@ def loadShape(path):
 
 
 def recognizeShape(shape):
-    pass
+    """$1 algorithm to recognize shape
+
+    Parameters
+    ----------
+
+    shape : Shape
+        shape to be recognized
+
+    Returns
+    -------
+
+    shape_type : str
+        type of this shape
+    """
 
 
 if __name__ == '__main__':
