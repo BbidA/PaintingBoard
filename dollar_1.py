@@ -1,4 +1,8 @@
+import functools
+
+from math import atan2, cos, sin
 from shape_base import Point
+
 
 def recognizeShape(shape):
     """$1 algorithm to recognize shape
@@ -67,3 +71,68 @@ def path_length(points):
         dist += points[i].dist_to(points[i - 1])
 
     return dist
+
+
+def rotate_to_zero(points):
+    centroid = find_centroid(points)
+    theta = atan2(centroid.y - points[0].y, centroid.x - points[0].x)
+    return rotate_by(points, theta)
+
+
+def find_centroid(points):
+    p_sum = functools.reduce(lambda a, b: a + b, points)
+    return Point(p_sum.x / len(points), p_sum.y / len(points))
+
+
+def rotate_by(points, theta):
+    centroid = find_centroid(points)
+    new_points = []
+    for point in points:
+        x = (point.x - centroid.x) * cos(theta) - (point.y - centroid.y) * sin(theta) + centroid.x
+        y = (point.x - centroid.x) * sin(theta) + (point.y - centroid.y) * cos(theta) + centroid.y
+        new_points.append(Point(x, y))
+
+    return new_points
+
+
+def scale_to_square(points, size):
+    new_points = []
+    width, height = bounding_box(points)
+    for p in points:
+        x = p.x * (size / width)
+        y = p.y * (size / height)
+        new_points.append(Point(x, y))
+
+    return new_points
+
+
+def bounding_box(points):
+    assert len(points) >= 1
+
+    max_x = min_x = points[0].x
+    max_y = min_y = points[0].y
+
+    for point in points:
+        if point.x < min_x:
+            min_x = point.x
+        if point.y < min_y:
+            min_y = point.y
+
+        if point.x > max_x:
+            max_x = point.x
+        if point.y > max_y:
+            max_y = point.y
+
+    # width and height
+    return max_x - min_x, max_y - min_y
+
+
+def translate_to_origin(points):
+    centroid = find_centroid(points)
+    new_points = []
+    for p in points:
+        x = p.x - centroid.x
+        y = p.y - centroid.y
+        new_points.append(Point(x, y))
+
+    return new_points

@@ -104,6 +104,14 @@ class Point:
     def dist_to(self, point):
         return math.sqrt(pow(self.x - point.x, 2) + pow(self.y - point.y, 2))
 
+    def __add__(self, other):
+        x = self.x + other.x
+        y = self.y + other.y
+        return Point(x, y)
+
+    def __mul__(self, scalar):
+        return Point(self.x * scalar, self.y * scalar)
+
 
 def saveShapeTo(path, shape):
     target = open(path, 'wb')
