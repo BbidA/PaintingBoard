@@ -1,5 +1,5 @@
 import functools
-from math import atan2, cos, sin, sqrt, atan, pi
+from math import cos, sin, sqrt, atan, pi
 
 from shape_base import Point, Shape
 

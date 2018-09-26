@@ -1,12 +1,12 @@
-import sys
-import pickle
 import copy
-import dollar_1
+import pickle
+import sys
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter, QPen
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QFileDialog, QAction, QLineEdit, QPushButton
 
+import dollar_1
 from dollar_1 import recognize_shape
 from shape_base import Shape, Line
 
@@ -37,13 +37,16 @@ class MyBoard(QMainWindow):
         # init actions
         save_action = QAction('save', self)
         load_action = QAction('load', self)
-        add_to_templates = QAction('add_to_templates', self)
-        save_templates = QAction('save_templates', self)
+
+        add_to_templates = QAction('Add to templates', self)
+        save_templates = QAction('Save templates', self)
+        load_templates = QAction('Load templates', self)
 
         save_action.triggered.connect(self.__saveShape)
         load_action.triggered.connect(self.__loadShape)
         add_to_templates.triggered.connect(self.add_current_shape_to_templates)
         save_templates.triggered.connect(self.save_templates)
+        load_templates.triggered.connect(self.load_templates)
 
         # debug actions
         resample = QAction('resample', self)
@@ -68,6 +71,7 @@ class MyBoard(QMainWindow):
 
         read = menu_bar.addMenu('read')
         read.addAction(load_action)
+        read.addAction(load_templates)
 
         debug = menu_bar.addMenu('debug')
         debug.addAction(resample)
@@ -110,7 +114,7 @@ class MyBoard(QMainWindow):
             self.shape.addLine(self.current_line)
             self.current_line = Line()
             # show tag of current shape
-            self.__show_shape_tag()
+            self.recognize()
 
     def mousePressEvent(self, e):
         if e.button() == Qt.RightButton:
