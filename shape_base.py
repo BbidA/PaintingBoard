@@ -16,6 +16,9 @@ class Shape:
         self.__lines = []
         self.__tag = ''
 
+    def __repr__(self):
+        return 'Shape(tag={})'.format(self.__tag)
+
     @classmethod
     def from_points(cls, points):
         line = Line()
@@ -31,16 +34,29 @@ class Shape:
         return self.__lines
 
     @property
+    def points(self):
+        p = []
+        for line in self.lines:
+            p += line.points
+
+        return p
+
+    @property
     def tag(self):
-        self.update_shape_type()
+        # self.update_shape_type()
         return self.__tag
+
+    @tag.setter
+    def tag(self, t):
+        self.__tag = t
 
     def addLine(self, line):
         assert isinstance(line, Line)
         self.__lines.append(line)
 
-    def clear_lines(self):
+    def clear(self):
         self.__lines.clear()
+        self.__tag = ''
 
     def update_shape_type(self):
         lines_number = len(self.__lines)
@@ -112,12 +128,6 @@ class Point:
     def __mul__(self, scalar):
         return Point(self.x * scalar, self.y * scalar)
 
+    def __repr__(self):
+        return 'Point({}, {})'.format(self.x, self.y)
 
-def saveShapeTo(path, shape):
-    target = open(path, 'wb')
-    pickle.dump(shape, target)
-
-
-def loadShape(path):
-    source = open(path, 'rb')
-    return pickle.load(source)

@@ -1,10 +1,17 @@
 import functools
+from math import atan2, cos, sin, sqrt, atan, pi
 
-from math import atan2, cos, sin
-from shape_base import Point
+from shape_base import Point, Shape
+
+golden_ratio = 0.5 * (sqrt(5) - 1)
+resample_points_num = 128
+reference_square_size = 50
+theta_upper = pi / 4
+theta_lower = - pi / 4
+theta_threshold = 2. * pi / 180
 
 
-def recognizeShape(shape):
+def recognize_shape(shape, templates):
     """$1 algorithm to recognize shape
 
     Parameters
@@ -13,19 +20,40 @@ def recognizeShape(shape):
     shape : Shape
         shape to be recognized
 
+    templates : list
+        list of templates(shape)
+
     Returns
     -------
 
-    shape_type : str
+    matched_shape : Shape
         type of this shape
     """
     # get all points of this shape
-    lines = shape.lines
-    points = []
-    for line in lines:
-        points += line.points
+    points = shape.points
+    points = resample(points, resample_points_num)
+    points = rotate_to_zero(points)
+    points = scale_to_square(points, reference_square_size)
+    points = translate_to_origin(points)
 
-    return resample(points, 128)
+    templates = process_raw_templates(templates)
+
+    return recognize(points, templates)
+
+
+def process_raw_templates(templates):
+    new_templates = []
+    for t in templates:
+        points = t.points
+        points = resample(points, resample_points_num)
+        points = rotate_to_zero(points)
+        points = scale_to_square(points, reference_square_size)
+        points = translate_to_origin(points)
+        new_t = Shape.from_points(points)
+        new_t.tag = t.tag
+        new_templates.append(new_t)
+
+    return new_templates
 
 
 def resample(points, n):
@@ -75,8 +103,8 @@ def path_length(points):
 
 def rotate_to_zero(points):
     centroid = find_centroid(points)
-    theta = atan2(centroid.y - points[0].y, centroid.x - points[0].x)
-    return rotate_by(points, theta)
+    theta = atan((centroid.y - points[0].y) / (centroid.x - points[0].x))
+    return rotate_by(points, -theta)
 
 
 def find_centroid(points):
@@ -136,3 +164,55 @@ def translate_to_origin(points):
         new_points.append(Point(x, y))
 
     return new_points
+
+
+def recognize(points, templates):
+    matched_result = None
+    min_dist = float('inf')
+
+    for template in templates:
+        assert isinstance(template, Shape)
+        template_points = template.points
+        dist = distance_at_best_angle(points, template_points, theta_lower, theta_upper, theta_threshold)
+        if dist < min_dist:
+            matched_result = template
+            min_dist = dist
+
+    return matched_result
+
+
+def distance_at_best_angle(points, template, lower_bound_angle, upper_bound_angle, threshold):
+    x_1 = upper_bound_angle - (upper_bound_angle - lower_bound_angle) * golden_ratio
+    x_2 = lower_bound_angle + (upper_bound_angle - lower_bound_angle) * golden_ratio
+
+    f_1 = distance_at_angle(points, template, x_1)
+    f_2 = distance_at_angle(points, template, x_2)
+
+    while abs(upper_bound_angle - lower_bound_angle) > threshold:
+        if f_1 < f_2:
+            upper_bound_angle = x_2
+            x_2 = x_1
+            f_2 = f_1
+            x_1 = upper_bound_angle - (upper_bound_angle - lower_bound_angle) * golden_ratio
+            f_1 = distance_at_angle(points, template, x_1)
+        else:
+            lower_bound_angle = x_1
+            x_1 = x_2
+            f_1 = f_2
+            x_2 = lower_bound_angle + (upper_bound_angle - lower_bound_angle) * golden_ratio
+            f_2 = distance_at_angle(points, template, x_2)
+
+    return min(f_1, f_2)
+
+
+def distance_at_angle(points, template, angle):
+    new_points = rotate_by(points, angle)
+    return path_distance(new_points, template)
+
+
+def path_distance(path_a, path_b):
+    distance = 0
+    for i, j in zip(path_a, path_b):
+        distance += i.dist_to(j)
+
+    return distance / len(path_a)
